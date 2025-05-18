@@ -1,0 +1,79 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 10% 10%;
+    --foreground: 0 0% 98%;
+
+    --card: 223 15% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 223 15% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 210 100% 52%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 220 10% 20%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 223 15% 17%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 220 10% 20%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 223 15% 17%;
+    --input: 223 15% 17%;
+    --ring: 224 71.4% 60%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-connect4-dark text-foreground;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
+  }
+}
+
+@layer components {
+  .connect4-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded;
+  }
+  
+  .btn-yellow {
+    @apply bg-connect4-yellow hover:bg-yellow-500 text-connect4-dark font-bold py-2 px-4 rounded;
+  }
+  
+  .card-game {
+    @apply bg-connect4-blue p-6 rounded-lg shadow-lg border border-gray-800;
+  }
+  
+  .nav-link {
+    @apply text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium;
+  }
+  
+  .nav-link-active {
+    @apply text-white bg-gray-800 px-3 py-2 rounded-md text-sm font-medium;
+  }
+}

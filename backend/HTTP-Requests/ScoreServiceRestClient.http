@@ -1,0 +1,16 @@
+### add score
+POST http://localhost:8080/api/connect4/score
+Content-Type: application/json
+
+{
+  "player": "player1",
+  "game": "connect4",
+  "points": 300,
+  "playedAt": "2025-04-07T10:10:00"
+}
+
+### get top scores
+GET http://localhost:8080/api/connect4/score
+
+### delete game scores
+DELETE http://localhost:8080/api/connect4/score

@@ -1,0 +1,59 @@
+@startuml sequence_diagram
+actor Player as "Player"
+participant "UserInterface" as UI
+participant "GameController" as GC
+participant "Board" as B
+
+Player -> UI++: Start Game
+UI -> GC++: Start Game
+GC -> GC: Initialize Game
+GC ->> B++: Initialize Board
+GC --> UI: Display Board
+loop Game Loop
+        UI-->Player: get Player Move
+
+        opt Pause Game
+            Player->>UI: Pause Game
+            UI->>GC: Pause Game
+            GC-->>UI: Game state updated
+            UI-->>Player: Game paused
+            
+            Player->>UI: Resume Game
+            UI->>GC: Resume Game
+            GC-->>UI: Game state updated
+            UI-->>Player: Game resumed
+        end
+
+        Player->UI : Move: column
+        UI->GC: Move: column
+        GC->>GC: Check move validity
+        
+        alt Valid move
+            GC->>B: Drop disc
+            B-->>GC: Update board
+            GC->>GC: Check win/draw
+
+            alt Win/Draw
+                GC->>GC: End Game
+                GC->UI: Display game result
+                UI-->Player: Message: Win/Draw
+                note right of Player: Game ends
+                break Game ended
+                    GC->>UI: Exit game loop
+                end
+
+            else Next move
+                GC->>GC: Switch player
+                GC->UI: Display Board
+                UI-->Player: Message: Next move
+            end
+            
+        else Invalid move
+            UI->>Player: Message: Invalid move
+        end
+    end
+
+    deactivate B
+    deactivate GC
+    deactivate UI
+@enduml

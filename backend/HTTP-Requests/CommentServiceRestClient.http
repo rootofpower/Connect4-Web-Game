@@ -1,0 +1,19 @@
+###add comment
+POST http://localhost:8080/api/connect4/comment
+Content-Type: application/json
+
+{
+  "player": "player1",
+  "game": "connect4",
+  "comment": "Cool game!",
+  "commentedAt": "2025-04-07T10:00:00"
+}
+###get comment with id
+GET http://localhost:8080/api/connect4/comment/1
+
+### delete comment with id
+DELETE http://localhost:8080/api/connect4/comment/1
+### delete all comments
+DELETE http://localhost:8080/api/connect4/comment
+### get all comments
+GET http://localhost:8080/api/connect4/comment

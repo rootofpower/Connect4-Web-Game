@@ -1,0 +1,19 @@
+###add/update rating
+POST http://localhost:8080/api/connect4/rating
+Content-Type: application/json
+
+{
+  "player": "player1",
+  "game": "connect4",
+  "rating": 4,
+  "ratedAt": "2025-04-07T10:05:00"
+}
+
+### get player rating
+GET http://localhost:8080/api/connect4/rating/player1
+
+### get avg rating
+GET http://localhost:8080/api/connect4/rating
+
+### delete all game rating
+DELETE http://localhost:8080/api/connect4/rating
