@@ -1,8 +1,5 @@
 FROM postgres:latest
-# Set environment variables
-ENV POSTGRES_USER=gamestudio
-ENV POSTGRES_PASSWORD=gamestudio
-ENV POSTGRES_DB=gamestudiodb
+# Credentials are provided at runtime via docker-compose (.env), not baked into the image.
 
 # Copy the initialization script
 # COPY init.sql /docker-entrypoint-initdb.d/
