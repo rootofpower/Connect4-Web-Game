@@ -2,6 +2,15 @@
 
 **Author:** Kuryliak Oleksii
 
+A full-stack web implementation of Connect Four, built as a university project and extended into a
+production-style application with JWT authentication, a PostgreSQL-backed REST API, a React/TypeScript
+frontend, and a Dockerized deployment behind Nginx.
+
+<!-- Screenshots: add 2-3 here (game board, leaderboard, login).
+     Drag images into any GitHub issue to get permanent URLs, then reference them like:
+     ![Game board](https://user-images.githubusercontent.com/.../board.png) -->
+
+
 ## Table of Contents
 1.  [Introduction](#introduction)
 2.  [Features](#features)
@@ -18,11 +27,11 @@
 7.  [Deployment](#deployment)
 
 ## Introduction
-This project is a web-based implementation of the classic game "Connect Four". Users can register, log in, play Connect Four against other players in real-time, view leaderboards, comment on the game, and rate it. The application is designed with a modern, responsive user interface and a robust backend.
+This project is a web-based implementation of the classic game "Connect Four". Users can register, log in, play Connect Four against other players online, view leaderboards, comment on the game, and rate it. The application is designed with a modern, responsive user interface and a robust backend.
 
 ## Features
 *   User authentication (registration and login) with JWT.
-*   Real-time multiplayer Connect Four gameplay.
+*   Online multiplayer Connect Four gameplay (client polling for game-state sync).
 *   Game lobbies for finding opponents.
 *   Score tracking and leaderboards (MMR-based and win-based).
 *   Game rating system.
@@ -40,7 +49,7 @@ This project is a web-based implementation of the classic game "Connect Four". U
     *   Spring Security: For authentication and authorization using JWT.
 *   **ORM:** Hibernate
 *   **Build Tool:** Apache Maven
-*   **API Documentation:** OpenAPI (Swagger) likely configured if `/v3/api-docs/**` and `/swagger-ui/**` are exposed.
+*   **API Documentation:** OpenAPI 3 via springdoc (`springdoc-openapi-starter-webmvc-ui`). Swagger UI is served at `/swagger-ui/index.html` and the OpenAPI spec at `/v3/api-docs`.
 
 ### Frontend
 *   **Language:** TypeScript
@@ -50,7 +59,7 @@ This project is a web-based implementation of the classic game "Connect Four". U
     *   Tailwind CSS: Utility-first CSS framework.
     *   Shadcn/ui: Re-usable UI components.
 *   **State Management:** React Context API, TanStack Query (React Query) for server state.
-*   **Routing:** Likely `react-router-dom` (common choice for React projects).
+*   **Routing:** `react-router-dom` (see `src/App.tsx`, `src/main.tsx`, and `src/components/PrivateRoute.tsx`).
 
 ### Database
 *   **Type:** PostgreSQL (relational database)
@@ -106,18 +115,26 @@ The workspace is organized into several main directories:
 *   A web browser (e.g., Chrome, Firefox, Edge)
 
 ### Running Locally
-1.  **Clone the repository (if applicable).**
-2.  **Navigate to the root directory of the project.**
-3.  **Ensure environment variables are set up if required.**
-    *   The backend `application.properties` might rely on environment variables for database credentials or JWT secrets, especially when not using the default Docker Compose setup.
-    *   The frontend might require environment variables for API base URLs (e.g., `VITE_API_BASE_URL`).
-4.  **Build and run the application using Docker Compose:**
+1.  **Clone the repository and navigate to the root directory.**
+2.  **Create your environment file from the template and fill in the values:**
     ```bash
-    docker-compose up --build -d
+    cp .env.example .env
     ```
-    The `-d` flag runs the containers in detached mode.
-5.  **Access the application:**
-    *   The frontend should be accessible at `http://localhost` (or another port if configured in `docker-compose.yml` or `nginx.conf`). Nginx typically listens on port 80.
+    All services read their configuration from `.env`. Set the database credentials (`POSTGRES_USER`,
+    `POSTGRES_PASSWORD`), a JWT signing secret (`JWT_SECRET`), and the frontend API URL (`VITE_API_URL`).
+    Generate a strong JWT secret with:
+    ```bash
+    openssl rand -base64 64 | tr -d '\n'
+    ```
+3.  **Build and run the application using Docker Compose:**
+    ```bash
+    docker compose up --build -d
+    ```
+    The `-d` flag runs the containers in detached mode. The frontend image is built with
+    [Bun](https://bun.sh/) (see `frontend/Dockerfile`).
+4.  **Access the application:**
+    *   Frontend: `http://localhost` (Nginx listens on port 80).
+    *   Backend API: `http://localhost:8080`, with Swagger UI at `http://localhost:8080/swagger-ui/index.html`.
 
 ## API Overview
 The backend exposes RESTful APIs for various functionalities. Key services include:
@@ -156,6 +173,6 @@ The backend exposes RESTful APIs for various functionalities. Key services inclu
 
 ## Deployment
 The application is deployed on a **Google Cloud Platform (GCP) Compute Engine virtual instance**.
-Docker containers (backend, frontend, database) are likely run on this instance, with Nginx managing incoming traffic and serving the application.
-The `nginx.conf` file handles routing requests to the appropriate service (frontend static files or backend API).
-The domain `connect4-rop.duckdns.org` (seen in `PlayerStatsController.java` comments) might be pointing to this GCP instance.
+All services run as Docker containers defined in `docker-compose.yml` (backend, frontend, database), with
+Nginx as the reverse proxy: it serves the frontend static files and proxies API requests to the backend.
+The `nginx.conf` file defines this routing.
