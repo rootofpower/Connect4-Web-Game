@@ -7,6 +7,7 @@ target/
 ### front ###
 /frontend/node_modules
 /frontend/build
+/frontend/dist/
 /frontend/.env.local
 ### IntelliJ IDEA ###
 .idea/
