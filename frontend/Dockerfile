@@ -1,14 +1,14 @@
-FROM node:current-alpine AS build
+FROM oven/bun:1 AS build
 
 WORKDIR /app
 
-COPY package.json yarn.lock ./
+COPY package.json bun.lockb ./
 
-RUN yarn install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 COPY . .
 
-RUN yarn build
+RUN bun run build
 
 FROM nginx:alpine
 
