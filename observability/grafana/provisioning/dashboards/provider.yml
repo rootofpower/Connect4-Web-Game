@@ -1,0 +1,6 @@
+apiVersion: 1
+providers:
+  - name: connect4
+    type: file
+    options:
+      path: /etc/grafana/dashboards
