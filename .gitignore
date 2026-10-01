@@ -42,3 +42,4 @@ build/
 /.idea/
 /.idea/
 /.idea/
+observability/alertmanager/secrets/
