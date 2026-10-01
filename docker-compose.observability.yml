@@ -54,6 +54,25 @@ services:
       - grafana_data:/var/lib/grafana
     networks: [gamestudio_network]
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.4
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports: ["9200:9200"]
+    volumes: [es_data:/usr/share/elasticsearch/data]
+    networks: [gamestudio_network]
+
+  vector:
+    image: timberio/vector:0.58.0-debian
+    volumes:
+      - ./observability/vector/vector.yaml:/etc/vector/vector.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [elasticsearch]
+    networks: [gamestudio_network]
+
 volumes:
   vm_data:
   grafana_data:
+  es_data:

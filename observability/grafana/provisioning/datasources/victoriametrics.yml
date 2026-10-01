@@ -6,3 +6,11 @@ datasources:
     access: proxy
     url: http://victoriametrics:8428
     isDefault: true
+  - name: Elasticsearch
+    uid: elasticsearch
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    jsonData:
+      index: "connect4-logs-*"
+      timeField: "timestamp"

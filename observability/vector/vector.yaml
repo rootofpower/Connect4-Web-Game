@@ -1,0 +1,24 @@
+sources:
+  docker:
+    type: docker_logs
+    include_containers: [gamestudio_backend, gamestudio_db]
+
+transforms:
+  enrich:
+    type: remap
+    inputs: [docker]
+    source: |
+      .service = .container_name
+      .compose_service = .label."com.docker.compose.service"
+      del(.label)
+      parsed, err = parse_regex(.message, r'^\S+\s+(?P<level>TRACE|DEBUG|INFO|WARN|ERROR)\s')
+      if err == null { .level = parsed.level } else { .level = "UNKNOWN" }
+
+sinks:
+  elasticsearch:
+    type: elasticsearch
+    inputs: [enrich]
+    endpoints: ["http://elasticsearch:9200"]
+    api_version: auto
+    bulk:
+      index: "connect4-logs-%Y.%m.%d"
