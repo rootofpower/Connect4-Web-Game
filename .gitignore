@@ -43,3 +43,7 @@ build/
 /.idea/
 /.idea/
 observability/alertmanager/secrets/
+infra/terraform/.terraform/
+*.tfstate
+*.tfstate.*
+infra/ansible/inventory.ini
