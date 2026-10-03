@@ -56,6 +56,14 @@ resource "aws_vpc_security_group_ingress_rule" "http" {
   to_port           = 80
 }
 
+resource "aws_vpc_security_group_ingress_rule" "https" {
+  security_group_id = aws_security_group.lab.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
+}
+
 resource "aws_vpc_security_group_egress_rule" "all" {
   security_group_id = aws_security_group.lab.id
   cidr_ipv4         = "0.0.0.0/0"
@@ -69,11 +77,16 @@ resource "aws_instance" "lab" {
   vpc_security_group_ids = [aws_security_group.lab.id]
 
   root_block_device {
-    volume_size = 30
+    volume_size = var.disk_size
     volume_type = "gp3"
   }
 
   tags = { Name = "connect4-lab" }
+}
+
+resource "aws_eip" "lab" {
+  instance = aws_instance.lab.id
+  domain   = "vpc"
 }
 
 # inventory for Ansible
@@ -82,6 +95,6 @@ resource "local_file" "ansible_inventory" {
   file_permission = "0644"
   content         = <<-EOT
     [k3s]
-    ${aws_instance.lab.public_ip} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/connect4-lab
+    ${aws_eip.lab.public_ip} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/connect4-lab
   EOT
 }
