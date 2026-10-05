@@ -47,3 +47,4 @@ infra/terraform/.terraform/
 *.tfstate
 *.tfstate.*
 infra/ansible/inventory.ini
+helm/values-secret.yaml

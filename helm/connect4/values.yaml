@@ -1,0 +1,6 @@
+postgres:
+  image: postgres:18
+  database: gamestudiodb
+  user: gamestudio
+  password: ""
+  storage: 2Gi
