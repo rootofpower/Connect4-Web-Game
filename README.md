@@ -10,8 +10,128 @@ frontend, and a Dockerized deployment behind Nginx.
      Drag images into any GitHub issue to get permanent URLs, then reference them like:
      ![Game board](https://user-images.githubusercontent.com/.../board.png) -->
 
+## SRE / Platform lab
+
+![Build images](https://github.com/rootofpower/Connect4-Web-Game/actions/workflows/images.yml/badge.svg)
+
+Besides the game itself, this repository is a hands-on lab for infrastructure as code, Kubernetes,
+observability and incident response. Everything described here is reproducible from the code in this repository.
+
+- **Infrastructure as code:** Terraform provisions an AWS EC2 host (Ubuntu 24.04), a security group and an
+  Elastic IP. Ansible upgrades the OS and installs a single-node k3s cluster.
+- **CI:** GitHub Actions builds the backend and frontend images and pushes them to `ghcr.io`, tagged with the commit SHA.
+- **Kubernetes:** a Helm chart deploys PostgreSQL (StatefulSet with a persistent volume), the backend
+  (Deployment with startup, liveness and readiness probes and resource limits) and the frontend, behind a Traefik Ingress.
+- **Observability (Docker Compose):** vmagent scrapes Spring Boot Actuator and a PostgreSQL exporter into
+  VictoriaMetrics; a Grafana RED dashboard is provisioned as code; vmalert rules send alerts through Alertmanager
+  to Telegram; container logs are shipped with Vector to Elasticsearch.
+- **Incident response:** a simulated database outage with a runbook and a postmortem, follow-up fixes verified
+  on Kubernetes, and a failed rollout recovered with `helm rollback`.
+
+### Architecture
+
+Deployment to Kubernetes:
+
+```mermaid
+flowchart LR
+    push["git push"] --> gha["GitHub Actions"]
+    gha -->|"images tagged by commit SHA"| ghcr[("ghcr.io")]
+    tf["Terraform"] -->|"EC2, security group, Elastic IP"| node
+    ans["Ansible"] -->|"OS updates, k3s"| node
+    helm["Helm chart"] -->|"helm upgrade --install"| node
+    ghcr -->|"image pull"| node
+    user["Browser"] -->|"HTTP :80"| ing
+    subgraph node["AWS EC2 · k3s"]
+        ing["Traefik Ingress"] -->|"/api"| be["backend"]
+        ing -->|"/"| fe["frontend"]
+        be --> pg[("PostgreSQL<br/>StatefulSet + PVC")]
+    end
+```
+
+Observability stack (`docker-compose.observability.yml`):
+
+```mermaid
+flowchart LR
+    be["backend<br/>/actuator/prometheus"] --> vmagent["vmagent"]
+    pgexp["postgres-exporter"] --> vmagent
+    vmagent --> vm[("VictoriaMetrics")]
+    vm --> grafana["Grafana<br/>RED dashboard"]
+    vm --> vmalert["vmalert"]
+    vmalert --> am["Alertmanager"] --> tg["Telegram"]
+    logs["container logs"] --> vector["Vector"] --> es[("Elasticsearch")]
+    es --> grafana
+```
+
+### Repository layout
+
+| Path | What |
+|---|---|
+| `infra/terraform/` | AWS EC2 host, security group (SSH and Kubernetes API only from the operator's IP), Elastic IP; generates the Ansible inventory |
+| `infra/ansible/` | `common.yml` (OS upgrade, base packages, reboot if required) and the `k3s` role; fetches the kubeconfig |
+| `helm/connect4/` | Helm chart: PostgreSQL, backend, frontend, Ingress |
+| `.github/workflows/images.yml` | Builds and pushes the backend and frontend images |
+| `docker-compose.observability.yml`, `observability/` | Metrics, dashboards, alert rules, Alertmanager, log shipping |
+| `docs/` | Runbook, postmortems and raw incident notes |
+
+### Run it
+
+Kubernetes on AWS (needs an AWS CLI profile and an SSH key pair at `~/.ssh/connect4-lab`):
+
+```bash
+# 1. Server
+cd infra/terraform && terraform init && terraform apply
+
+# 2. OS setup and k3s; writes the kubeconfig to ~/.kube/connect4-lab.yaml
+cd ../ansible && ansible-playbook site.yml
+
+# 3. Application (from the repository root)
+cd ../..
+export KUBECONFIG=~/.kube/connect4-lab.yaml
+helm upgrade --install c4 helm/connect4 -f helm/values-secret.yaml
+
+# 4. Open the game
+echo "http://$(terraform -chdir=infra/terraform output -raw public_ip)"
+
+# Tear down
+terraform -chdir=infra/terraform destroy
+```
+
+`helm/values-secret.yaml` is not in git. It sets `postgres.password` and `backend.jwtSecret`
+(base64url, for example `openssl rand -base64 48 | tr '+/' '-_' | tr -d '='`).
+
+Observability stack locally (Telegram bot token in `observability/alertmanager/secrets/telegram_token`,
+not in git; chat ID in `observability/alertmanager/alertmanager.yml`):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d \
+  db backend victoriametrics vmagent postgres-exporter grafana vmalert alertmanager elasticsearch vector
+```
+
+Grafana runs on `:3000`, VictoriaMetrics on `:8428`, vmalert on `:8880`, Alertmanager on `:9093`,
+Elasticsearch on `:9200`.
+
+### Incidents and runbooks
+
+- [PostgreSQL outage (simulated)](docs/postmortems/2026-10-01-postgres-outage.md): the `PostgresDown` alert
+  reached Telegram 73 s after the database stopped. Follow-up fixes (DB in the readiness probe, 3 s connection
+  timeout) were verified on Kubernetes.
+- [Runbook: PostgresDown](docs/runbooks/postgres-down.md)
+- [Failed rollout: non-existent image tag](docs/postmortems/2026-10-06-frontend-bad-image-rollout.md): the
+  rolling update kept the old pod serving traffic; recovered with `helm rollback`.
+
+Issues found while building the lab:
+
+- `postgres:latest` became PostgreSQL 18, which stores data under `/var/lib/postgresql`; the old volume path
+  silently left data in an anonymous volume. The image is now pinned.
+- A missing request parameter returned 403 to the client while metrics recorded 400: the error was forwarded
+  to `/error`, which Spring Security blocked.
+- Elasticsearch rejected every log event because two Docker labels (`com.docker.compose.project` and
+  `com.docker.compose.project.config_files`) produced a mapping conflict; Vector now drops the labels.
+- The readiness probe stayed `UP` while the database was down, so Kubernetes would have kept routing traffic
+  to a broken pod.
 
 ## Table of Contents
+0.  [SRE / Platform lab](#sre--platform-lab)
 1.  [Introduction](#introduction)
 2.  [Features](#features)
 3.  [Technologies Stack](#technologies-stack)
@@ -172,7 +292,9 @@ The backend exposes RESTful APIs for various functionalities. Key services inclu
 *(Note: Some API paths like `/api/score/` seem to use a different base path than `/api/connect4/`. This is based on the provided controller configurations.)*
 
 ## Deployment
-The application is deployed on a **Google Cloud Platform (GCP) Compute Engine virtual instance**.
+The Kubernetes deployment on AWS (Terraform, Ansible, k3s, Helm) is described in [SRE / Platform lab](#sre--platform-lab).
+
+The original deployment ran on a **Google Cloud Platform (GCP) Compute Engine virtual instance**.
 All services run as Docker containers defined in `docker-compose.yml` (backend, frontend, database), with
 Nginx as the reverse proxy: it serves the frontend static files and proxies API requests to the backend.
 The `nginx.conf` file defines this routing.
