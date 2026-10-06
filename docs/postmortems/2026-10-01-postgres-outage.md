@@ -17,18 +17,18 @@ The `PostgresDown` alert reached Telegram 73 seconds after the outage started.
 
 ## Timeline (UTC)
 
-| Time | Event |
-|---|---|
+| Time     | Event                                                                                                                       |
+|----------|-----------------------------------------------------------------------------------------------------------------------------|
 | 17:36:32 | DB container stopped (`docker compose stop db`). First backend ERROR: `terminating connection due to administrator command` |
-| 17:36:45 | `pg_up` = 0, `PostgresDown` pending |
-| 17:37:45 | `PostgresDown` firing; notification received in Telegram |
-| 17:41:15 | `High5xxRatio` and `HighLatencyP95` pending |
-| 17:43:15 | `High5xxRatio` firing |
-| 17:45:40 | DB container started (`docker compose start db`) |
-| 17:45:45 | `PostgresDown` resolved |
-| 17:46:00 | `pg_up` = 1 |
-| 17:46:15 | `HighLatencyP95` firing, after the DB was already back |
-| 17:46:30 | `High5xxRatio` and `HighLatencyP95` resolved |
+| 17:36:45 | `pg_up` = 0, `PostgresDown` pending                                                                                         |
+| 17:37:45 | `PostgresDown` firing; notification received in Telegram                                                                    |
+| 17:41:15 | `High5xxRatio` and `HighLatencyP95` pending                                                                                 |
+| 17:43:15 | `High5xxRatio` firing                                                                                                       |
+| 17:45:40 | DB container started (`docker compose start db`)                                                                            |
+| 17:45:45 | `PostgresDown` resolved                                                                                                     |
+| 17:46:00 | `pg_up` = 1                                                                                                                 |
+| 17:46:15 | `HighLatencyP95` firing, after the DB was already back                                                                      |
+| 17:46:30 | `High5xxRatio` and `HighLatencyP95` resolved                                                                                |
 
 ## Detection
 
@@ -61,8 +61,19 @@ The DB container was started again. HikariCP reconnected on its own; the backend
 
 ## Action items
 
-- [ ] Lower the HikariCP connection timeout (`spring.datasource.hikari.connection-timeout`) so requests fail fast.
-- [ ] Add `db` to the readiness group: `management.endpoint.health.group.readiness.include=readinessState,db`.
-      Do not add it to liveness, or Kubernetes would restart healthy pods in a loop.
+- [X] Lower the HikariCP connection timeout (`spring.datasource.hikari.connection-timeout`) so requests fail fast.
+- [X] Add `db` to the readiness group: `management.endpoint.health.group.readiness.include=readinessState,db`.
+  Do not add it to liveness, or Kubernetes would restart healthy pods in a loop.
 - [ ] Add an Alertmanager inhibit rule: mute `High5xxRatio` and `HighLatencyP95` while `PostgresDown` is firing.
 - [ ] Link this runbook from the `PostgresDown` alert annotation (`runbook_url`).
+
+## Follow-up (2026-10-06, Kubernetes)
+
+Both fixes were applied as environment variables in the Helm chart and verified by scaling
+PostgreSQL to 0 replicas:
+
+- About 13 s after the database stopped, the backend pod went to `0/1` Ready (readiness `periodSecond: 5` × default
+  `failureThreshold: 3` ≈ 15 s) and stopped receiving traffic.
+- The pod was not restarted (`RESTARTS` stayed the same): liveness does not check the DB.
+- `/actuator/health/readiness` returned `{"status":"DOWN"}` with HTTP 503.
+- After PostgreSQL was scaled back to 1, the backend became Ready again 4s after database, with no restart.
