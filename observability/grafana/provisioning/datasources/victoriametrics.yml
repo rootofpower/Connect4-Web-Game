@@ -1,0 +1,16 @@
+apiVersion: 1
+datasources:
+  - name: VictoriaMetrics
+    uid: victoriametrics
+    type: prometheus # VictoriaMetrics is compatible to Prometheus API
+    access: proxy
+    url: http://victoriametrics:8428
+    isDefault: true
+  - name: Elasticsearch
+    uid: elasticsearch
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    jsonData:
+      index: "connect4-logs-*"
+      timeField: "timestamp"

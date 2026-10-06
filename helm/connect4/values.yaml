@@ -1,0 +1,18 @@
+postgres:
+  image: postgres:18
+  database: gamestudiodb
+  user: gamestudio
+  password: ""
+  storage: 2Gi
+
+backend:
+  image:
+    repository: ghcr.io/rootofpower/connect4-backend
+    tag: cd8ec245f115ff3cd034d4892ea3e03978a23bad
+  jwtSecret: ""
+  jwtExpiration: "3600000"
+
+frontend:
+  image:
+    repository: ghcr.io/rootofpower/connect4-frontend
+    tag: 36df0251408ac58f6256bf9407846a47f983745b

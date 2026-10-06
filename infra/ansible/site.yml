@@ -1,0 +1,6 @@
+- import_playbook: common.yml
+- name: Install k3s
+  hosts: k3s
+  become: true
+  roles:
+    - k3s

@@ -1,0 +1,78 @@
+services:
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.153.0
+    command: ["-retentionPeriod=7d"]
+    ports: ["8428:8428"]
+    volumes: [vm_data:/victoria-metrics-data]
+    networks: [gamestudio_network]
+
+  vmagent:
+    image: victoriametrics/vmagent:v1.153.0
+    command:
+      - -promscrape.config=/etc/vmagent/scrape.yml
+      - -remoteWrite.url=http://victoriametrics:8428/api/v1/write
+    volumes: [./observability/vmagent:/etc/vmagent:ro]
+    ports: ["8429:8429"]
+    depends_on: [victoriametrics]
+    networks: [gamestudio_network]
+
+  vmalert:
+    image: victoriametrics/vmalert:v1.153.0
+    command:
+      - -rule=/etc/vmalert/rules/*.yml
+      - -datasource.url=http://victoriametrics:8428
+      - -notifier.url=http://alertmanager:9093
+      - -remoteWrite.url=http://victoriametrics:8428
+      - -remoteRead.url=http://victoriametrics:8428
+      - -evaluationInterval=15s
+    volumes: [./observability/vmalert/rules:/etc/vmalert/rules:ro]
+    ports: ["8880:8880"]
+    depends_on: [victoriametrics, alertmanager]
+    networks: [gamestudio_network]
+
+  alertmanager:
+    image: prom/alertmanager:v0.34.1
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
+    volumes: [./observability/alertmanager:/etc/alertmanager:ro]
+    ports: ["9093:9093"]
+    networks: [gamestudio_network]
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
+    environment:
+      DATA_SOURCE_URI: db:5432/${POSTGRES_DB}?sslmode=disable
+      DATA_SOURCE_USER: ${POSTGRES_USER}
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD}
+    networks: [gamestudio_network]
+
+  grafana:
+    image: grafana/grafana:13.2.3
+    ports: ["3000:3000"]
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks: [gamestudio_network]
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.4
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports: ["9200:9200"]
+    volumes: [es_data:/usr/share/elasticsearch/data]
+    networks: [gamestudio_network]
+
+  vector:
+    image: timberio/vector:0.58.0-debian
+    volumes:
+      - ./observability/vector/vector.yaml:/etc/vector/vector.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [elasticsearch]
+    networks: [gamestudio_network]
+
+volumes:
+  vm_data:
+  grafana_data:
+  es_data:

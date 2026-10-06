@@ -1,0 +1,25 @@
+- name: Base OS setup
+  hosts: k3s
+  become: true
+  tasks:
+    - name: Update apt cache and upgrade all packages
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+
+    - name: Install base packages
+      ansible.builtin.apt:
+        pkg:
+          - curl
+          - htop
+          - ca-certificates
+
+    - name: Check if a reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: rb
+
+    - name: Reboot if required
+      ansible.builtin.reboot:
+        msg: "Rebooting machine in 5 seconds"
+      when: rb.stat.exists

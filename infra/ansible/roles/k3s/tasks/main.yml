@@ -1,0 +1,30 @@
+- name: Download the k3s install script
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: /tmp/k3s-install.sh
+    mode: '0755'
+
+- name: Install k3s
+  ansible.builtin.command:
+    cmd: /tmp/k3s-install.sh
+    creates: /usr/local/bin/k3s
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_EXEC: "server --tls-san {{ inventory_hostname }}"
+
+- name: Wait for the Kubernetes API
+  ansible.builtin.wait_for:
+    port: 6443
+
+- name: Read config to register
+  ansible.builtin.slurp:
+    src: /etc/rancher/k3s/k3s.yaml
+  register: kubeconfig
+
+- name: Copy config to local machine
+  ansible.builtin.copy:
+    content: "{{ kubeconfig.content | b64decode | replace('127.0.0.1', inventory_hostname) }}"
+    dest: ~/.kube/connect4-lab.yaml
+    mode: '0600'
+  delegate_to: localhost
+  become: false
