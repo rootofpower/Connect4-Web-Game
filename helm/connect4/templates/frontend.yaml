@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: "ghcr.io/rootofpower/connect4-frontend:36df0251408ac58f6256bf9407846a47f983745b"
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
           ports:
             - containerPort: 80
           readinessProbe:
