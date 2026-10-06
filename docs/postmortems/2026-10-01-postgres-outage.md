@@ -72,7 +72,7 @@ The DB container was started again. HikariCP reconnected on its own; the backend
 Both fixes were applied as environment variables in the Helm chart and verified by scaling
 PostgreSQL to 0 replicas:
 
-- About 13 s after the database stopped, the backend pod went to `0/1` Ready (readiness `periodSecond: 5` × default
+- About 13 s after the database stopped, the backend pod went to `0/1` Ready (readiness `periodSeconds: 5` × default
   `failureThreshold: 3` ≈ 15 s) and stopped receiving traffic.
 - The pod was not restarted (`RESTARTS` stayed the same): liveness does not check the DB.
 - `/actuator/health/readiness` returned `{"status":"DOWN"}` with HTTP 503.
