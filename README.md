@@ -1,10 +1,14 @@
-# Connect Four
+# Connect Four — Cloud & Observability Lab
 
 **Author:** Kuryliak Oleksii
 
-A full-stack web implementation of Connect Four, built as a university project and extended into a
-production-style application with JWT authentication, a PostgreSQL-backed REST API, a React/TypeScript
-frontend, and a Dockerized deployment behind Nginx.
+An SRE / DevOps lab built around a full-stack Connect Four application. Terraform provisions an AWS EC2 host,
+Ansible installs k3s, and a Helm chart deploys the application to Kubernetes. A Prometheus-compatible monitoring
+stack (vmagent, VictoriaMetrics, Grafana, vmalert, Alertmanager) and log shipping with Vector to Elasticsearch
+cover observability, and simulated incidents are documented as runbooks and postmortems.
+
+The application itself started as a university project: a Spring Boot 3 / PostgreSQL REST API with JWT
+authentication and a React/TypeScript frontend, first deployed with Docker Compose behind Nginx on GCP.
 
 <!-- Screenshots: add 2-3 here (game board, leaderboard, login).
      Drag images into any GitHub issue to get permanent URLs, then reference them like:
@@ -14,17 +18,18 @@ frontend, and a Dockerized deployment behind Nginx.
 
 ![Build images](https://github.com/rootofpower/Connect4-Web-Game/actions/workflows/images.yml/badge.svg)
 
-Besides the game itself, this repository is a hands-on lab for infrastructure as code, Kubernetes,
-observability and incident response. Everything described here is reproducible from the code in this repository.
+The lab covers infrastructure as code, Kubernetes, observability and incident response. Everything described
+here is reproducible from the code in this repository.
 
 - **Infrastructure as code:** Terraform provisions an AWS EC2 host (Ubuntu 24.04), a security group and an
   Elastic IP. Ansible upgrades the OS and installs a single-node k3s cluster.
 - **CI:** GitHub Actions builds the backend and frontend images and pushes them to `ghcr.io`, tagged with the commit SHA.
 - **Kubernetes:** a Helm chart deploys PostgreSQL (StatefulSet with a persistent volume), the backend
   (Deployment with startup, liveness and readiness probes and resource limits) and the frontend, behind a Traefik Ingress.
-- **Observability (Docker Compose):** vmagent scrapes Spring Boot Actuator and a PostgreSQL exporter into
-  VictoriaMetrics; a Grafana RED dashboard is provisioned as code; vmalert rules send alerts through Alertmanager
-  to Telegram; container logs are shipped with Vector to Elasticsearch.
+- **Observability (Docker Compose):** vmagent scrapes Prometheus metrics from Spring Boot Actuator
+  (`/actuator/prometheus`) and a PostgreSQL exporter into VictoriaMetrics; a Grafana RED dashboard is provisioned
+  as code; vmalert evaluates PromQL alert rules (service down, 5xx ratio, p95 latency) and sends alerts through
+  Alertmanager to Telegram; container logs are shipped with Vector to Elasticsearch.
 - **Incident response:** a simulated database outage with a runbook and a postmortem, follow-up fixes verified
   on Kubernetes, and a failed rollout recovered with `helm rollback`.
 
@@ -189,6 +194,7 @@ This project is a web-based implementation of the classic game "Connect Four". U
 *   **Orchestration:** Docker Compose (for local development and multi-container setup)
 *   **Web Server/Reverse Proxy:** Nginx (serving frontend static files and proxying API requests to the backend)
 *   **Cloud Platform:** Google Cloud Platform (GCP) - Deployed on a Compute Engine virtual instance.
+*   **Kubernetes, IaC and monitoring:** Terraform, Ansible, k3s, Helm and the observability stack are described in [SRE / Platform lab](#sre--platform-lab).
 
 ## Project Structure
 The workspace is organized into several main directories:
